@@ -1,10 +1,31 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watchEffect } from 'vue'
 import { useLocalStorage } from '@/composables/useLocalStorage'
 
 const tasks = useLocalStorage('tasks', [])
 const newTask = ref('')
 const currentFilter = ref('all') // 'all', 'active', 'completed'
+
+// ----------- DARKMODE -----------
+// Dark mode state
+const isDark = useLocalStorage('darkMode', false)
+
+// AUTOMATISCH SYNCHRONISEREN TUSSEN isDark EN dark CLASS
+watchEffect(() => {
+  if (isDark.value) {
+    document.documentElement.classList.add('dark')
+  } else {
+    document.documentElement.classList.remove('dark')
+  }
+})
+
+// Toggle dark mode
+const toggleDarkMode = () => {
+  isDark.value = !isDark.value
+  // De watchEffect zorgt nu voor het togglen van de class
+}
+
+// ----------- END DARKMODE -----------
 
 const toggleCompleted = (task) => {
   task.completed = !task.completed
@@ -63,10 +84,14 @@ const hasCompletedTasks = computed(() => {
 </script>
 
 <template>
-  <section class="bg-gray-50 w-full h-screen relative">
+  <section class="bg-gray-50 dark:bg-gray-900 w-full h-screen relative">
     <!-- background header image -->
     <div class="absolute top-0 left-0 w-full">
-      <img class="object-cover w-full h-[35vh]" src="@/assets/images/bg-desktop-light.jpg" alt="" />
+      <img
+        class="object-cover w-full h-[35vh]"
+        :src="isDark ? '/images/bg-desktop-dark.jpg' : '/images/bg-desktop-light.jpg'"
+        :alt="isDark ? 'Dark background' : 'Light background'"
+      />
     </div>
 
     <!-- TODO SECTION-->
@@ -74,23 +99,34 @@ const hasCompletedTasks = computed(() => {
       <!-- TODO header -->
       <header class="flex justify-between w-full">
         <h1 class="text-4xl tracking-[15px] font-bold text-white">TODO</h1>
-        <button><img src="@/assets/images/icon-moon.svg" alt="moon icon" /></button>
+        <button @click="toggleDarkMode" class="cursor-pointer">
+          <img :src="isDark ? '/images/icon-sun.svg' : '/images/icon-moon.svg'" alt="moon icon" />
+        </button>
       </header>
 
       <!-- TODO INPUT FORM -->
       <form @submit.prevent="addTask" class="mt-9 shadow-md">
-        <label class="w-full bg-white px-5 py-5 rounded-lg border-0 flex items-center">
+        <label
+          class="w-full bg-white dark:bg-gray-800 px-5 py-5 rounded-lg border-0 flex items-center"
+        >
           <div class="flex items-center w-full">
-            <div class="list-checkbox border border-gray-300 rounded-full mr-4"></div>
+            <div
+              class="list-checkbox border border-gray-300 dark:border-gray-600 rounded-full mr-4"
+            ></div>
             <!-- input -->
             <input
               type="text"
-              class="placeholder:font-700 placeholder:text-gray-500 font-700 text-gray-500 focus:outline-none flex-1"
+              class="placeholder:font-700 placeholder:text-gray-500 dark:placeholder:text-gray-500 font-700 text-gray-500 dark:text-gray-400 focus:outline-none flex-1"
               placeholder="Type a message"
               v-model="newTask"
             />
           </div>
-          <button type="submit" class="ps-3">Add</button>
+          <button
+            type="submit"
+            class="ps-3 text-gray-600 hover:text-gray-400 dark:text-gray-500 cursor-pointer"
+          >
+            Add
+          </button>
         </label>
       </form>
 
@@ -101,13 +137,13 @@ const hasCompletedTasks = computed(() => {
           <label
             v-for="task in filteredTasks"
             :key="task.id"
-            class="w-full bg-white px-5 py-5 border-b-1 border-b-gray-200 flex items-center"
+            class="w-full bg-white dark:bg-gray-800 px-5 py-5 border-b-1 border-b-gray-200 dark:border-b-gray-600 flex items-center group"
           >
             <div v-if="task" class="flex items-center w-full">
               <!-- checkbox -->
               <input
                 type="checkbox"
-                class="list-checkbox appearance-none border border-gray-300 rounded-full mr-4"
+                class="list-checkbox appearance-none border border-gray-300 dark:border-gray-500 rounded-full mr-4 cursor-pointer"
                 :checked="task.completed"
                 @change="toggleCompleted(task)"
               />
@@ -115,7 +151,9 @@ const hasCompletedTasks = computed(() => {
               <span
                 class="font-700 flex-1"
                 :class="
-                  task.completed ? 'line-through text-gray-400 decoration-1' : ' text-gray-500'
+                  task.completed
+                    ? 'line-through text-gray-400 dark:text-gray-600 decoration-1'
+                    : ' text-gray-500 dark:text-gray-400'
                 "
                 >{{
                   task.title ? task.title.charAt(0).toUpperCase() + task.title.slice(1) : ''
@@ -123,8 +161,12 @@ const hasCompletedTasks = computed(() => {
               >
             </div>
 
-            <button type="button" @click="deleteTask(task.id)" class="ps-3">
-              <img src="@/assets/images/icon-cross.svg" alt="remove icon" />
+            <button
+              type="button"
+              @click="deleteTask(task.id)"
+              class="ps-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+            >
+              <img src="/images/icon-cross.svg" alt="remove icon" />
             </button>
           </label>
         </div>
@@ -132,7 +174,7 @@ const hasCompletedTasks = computed(() => {
         <!-- NO TASKS fallback -->
         <label
           v-else
-          class="w-full bg-white px-5 py-5 border-b-1 border-b-gray-200 flex items-center"
+          class="w-full bg-white dark:bg-gray-800 px-5 py-5 border-b-1 border-b-gray-200 dark:border-b-gray-600 flex items-center"
         >
           <!-- title -->
           <span class="font-700 text-gray-500 flex-1"
@@ -149,32 +191,44 @@ const hasCompletedTasks = computed(() => {
         </label>
 
         <!-- filters -->
-        <div class="flex justify-between items-center px-4 py-3 bg-white">
-          <div class="text-sm text-gray-400">
+        <div class="flex justify-between items-center px-4 py-3 bg-white dark:bg-gray-800">
+          <div class="text-sm text-gray-400 dark:text-gray-500">
             {{ tasks.length }} item{{ tasks.length === 1 ? '' : 's' }} left
           </div>
           <div class="space-x-3">
             <button
               type="button"
               @click="showAllTasks()"
-              class="text-sm text-gray-400 hover:text-gray-600 font-bold"
-              :class="currentFilter === 'all' ? 'text-gray-600' : ''"
+              class="text-sm font-bold cursor-pointer"
+              :class="
+                currentFilter === 'all'
+                  ? 'text-gray-600 dark:text-gray-300'
+                  : 'text-gray-400 dark:text-gray-500'
+              "
             >
               All
             </button>
             <button
               type="button"
               @click="showActiveTasks()"
-              class="text-sm text-gray-400 hover:text-gray-600 font-bold"
-              :class="currentFilter === 'active' ? 'text-gray-600' : ''"
+              class="text-sm font-bold cursor-pointer"
+              :class="
+                currentFilter === 'active'
+                  ? 'text-gray-600 dark:text-gray-300'
+                  : 'text-gray-400 dark:text-gray-500'
+              "
             >
               Active
             </button>
             <button
               type="button"
               @click="showCompletedTasks()"
-              class="text-sm text-gray-400 hover:text-gray-600 font-bold"
-              :class="currentFilter === 'completed' ? 'text-gray-600' : ''"
+              class="text-sm font-bold cursor-pointer"
+              :class="
+                currentFilter === 'completed'
+                  ? 'text-gray-600 dark:text-gray-300'
+                  : 'text-gray-400 dark:text-gray-500'
+              "
             >
               Completed
             </button>
@@ -182,7 +236,7 @@ const hasCompletedTasks = computed(() => {
           <button
             type="button"
             @click="clearCompletedTasks()"
-            class="text-sm text-gray-400 hover:text-gray-600 font-bold disabled:cursor-not-allowed disabled:text-gray-300"
+            class="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 font-bold disabled:cursor-not-allowed disabled:text-gray-300 cursor-pointer"
             :disabled="!hasCompletedTasks"
           >
             Clear Completed
@@ -210,7 +264,7 @@ const hasCompletedTasks = computed(() => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-image: url('@/assets/images/icon-check.svg');
+  background-image: url('/images/icon-check.svg');
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
