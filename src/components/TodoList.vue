@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watchEffect } from 'vue'
 import { useLocalStorage } from '@/composables/useLocalStorage'
+import draggable from 'vuedraggable'
 
 const tasks = useLocalStorage('tasks', [])
 const newTask = ref('')
@@ -60,15 +61,30 @@ const showCompletedTasks = () => {
   currentFilter.value = 'completed'
 }
 
-const filteredTasks = computed(() => {
-  switch (currentFilter.value) {
-    case 'active':
-      return tasks.value.filter((task) => !task.completed)
-    case 'completed':
-      return tasks.value.filter((task) => task.completed)
-    default:
-      return tasks.value
-  }
+const filteredTasks = computed({
+  get: () => {
+    switch (currentFilter.value) {
+      case 'active':
+        return tasks.value.filter((task) => !task.completed)
+      case 'completed':
+        return tasks.value.filter((task) => task.completed)
+      default:
+        return tasks.value
+    }
+  },
+  set: (value) => {
+    // Update de originele tasks array wanneer items worden gesleept
+    // We moeten rekening houden met de filter
+    if (currentFilter.value === 'all') {
+      tasks.value = value
+    } else if (currentFilter.value === 'active') {
+      const completedTasks = tasks.value.filter((task) => task.completed)
+      tasks.value = [...value, ...completedTasks]
+    } else if (currentFilter.value === 'completed') {
+      const activeTasks = tasks.value.filter((task) => !task.completed)
+      tasks.value = [...activeTasks, ...value]
+    }
+  },
 })
 
 const clearCompletedTasks = () => {
@@ -134,41 +150,44 @@ const hasCompletedTasks = computed(() => {
       <div class="mt-9 shadow-xl rounded-lg overflow-hidden border-0">
         <!-- Todo list items -->
         <div v-if="filteredTasks.length">
-          <label
-            v-for="task in filteredTasks"
-            :key="task.id"
-            class="w-full bg-white dark:bg-gray-800 px-5 py-5 border-b-1 border-b-gray-200 dark:border-b-gray-600 flex items-center group"
-          >
-            <div v-if="task" class="flex items-center w-full">
-              <!-- checkbox -->
-              <input
-                type="checkbox"
-                class="list-checkbox appearance-none border border-gray-300 dark:border-gray-500 rounded-full mr-4 cursor-pointer"
-                :checked="task.completed"
-                @change="toggleCompleted(task)"
-              />
-              <!-- title -->
-              <span
-                class="font-700 flex-1"
-                :class="
-                  task.completed
-                    ? 'line-through text-gray-400 dark:text-gray-600 decoration-1'
-                    : ' text-gray-500 dark:text-gray-400'
-                "
-                >{{
-                  task.title ? task.title.charAt(0).toUpperCase() + task.title.slice(1) : ''
-                }}</span
+          <!-- DRAGGABLE COMPONENT -->
+          <draggable v-model="filteredTasks" item-key="id" class="todo-list">
+            <template #item="{ element: task }">
+              <label
+                class="w-full bg-white dark:bg-gray-800 px-5 py-5 border-b-1 border-b-gray-200 dark:border-b-gray-600 flex items-center group"
               >
-            </div>
+                <div class="flex items-center w-full">
+                  <!-- checkbox -->
+                  <input
+                    type="checkbox"
+                    class="list-checkbox appearance-none border border-gray-300 dark:border-gray-500 rounded-full mr-4 cursor-pointer"
+                    :checked="task.completed"
+                    @change="toggleCompleted(task)"
+                  />
+                  <!-- title -->
+                  <span
+                    class="font-700 flex-1"
+                    :class="
+                      task.completed
+                        ? 'line-through text-gray-400 dark:text-gray-600 decoration-1'
+                        : ' text-gray-500 dark:text-gray-400'
+                    "
+                    >{{
+                      task.title ? task.title.charAt(0).toUpperCase() + task.title.slice(1) : ''
+                    }}</span
+                  >
+                </div>
 
-            <button
-              type="button"
-              @click="deleteTask(task.id)"
-              class="ps-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
-            >
-              <img src="/images/icon-cross.svg" alt="remove icon" />
-            </button>
-          </label>
+                <button
+                  type="button"
+                  @click="deleteTask(task.id)"
+                  class="ps-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+                >
+                  <img src="/images/icon-cross.svg" alt="remove icon" />
+                </button>
+              </label>
+            </template>
+          </draggable>
         </div>
 
         <!-- NO TASKS fallback -->
