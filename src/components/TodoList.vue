@@ -1,7 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { useLocalStorage } from '@/composables/useLocalStorage'
 
-const tasks = ref([])
+const tasks = useLocalStorage('tasks', [])
 const newTask = ref('')
 const currentFilter = ref('all') // 'all', 'active', 'completed'
 
@@ -22,10 +23,7 @@ const addTask = () => {
 }
 
 const deleteTask = (id) => {
-  const confirmDelete = confirm('Are you sure you want to delete this task?')
-  if (confirmDelete) {
-    tasks.value = tasks.value.filter((t) => t.id !== id)
-  }
+  tasks.value = tasks.value.filter((t) => t.id !== id) // remove task by id
 }
 
 // filters
@@ -115,8 +113,10 @@ const hasCompletedTasks = computed(() => {
               />
               <!-- title -->
               <span
-                class="font-700 text-gray-500 flex-1"
-                :class="task.completed ? 'line-through' : ''"
+                class="font-700 flex-1"
+                :class="
+                  task.completed ? 'line-through text-gray-400 decoration-1' : ' text-gray-500'
+                "
                 >{{
                   task.title ? task.title.charAt(0).toUpperCase() + task.title.slice(1) : ''
                 }}</span
