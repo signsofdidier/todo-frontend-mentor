@@ -84,7 +84,7 @@ const hasCompletedTasks = computed(() => {
 </script>
 
 <template>
-  <section class="bg-gray-50 dark:bg-gray-900 w-full h-screen px-6 relative">
+  <section class="bg-gray-50 dark:bg-gray-900 w-full h-full min-h-screen px-6 relative pb-15">
     <!-- background header image -->
     <div class="absolute top-0 left-0 w-full">
       <img
