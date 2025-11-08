@@ -1,7 +1,8 @@
 <script setup>
-import { useDarkMode } from '@/composables/useDarkMode'
+import DarkModeToggle from '@/components/DarkModeToggle.vue'
+import { useDarkModeStore } from '@/stores/darkModeStore' // of '@/stores/darkMode' afhankelijk van je bestandsnaam
 
-const { isDark, toggleDarkMode } = useDarkMode()
+const darkModeStore = useDarkModeStore()
 </script>
 
 <template>
@@ -10,8 +11,8 @@ const { isDark, toggleDarkMode } = useDarkMode()
     <div class="absolute top-0 left-0 w-full">
       <img
         class="object-cover w-full h-[35vh]"
-        :src="isDark ? '/images/bg-desktop-dark.jpg' : '/images/bg-desktop-light.jpg'"
-        :alt="isDark ? 'Dark background' : 'Light background'"
+        :src="darkModeStore.isDark ? '/images/bg-desktop-dark.jpg' : '/images/bg-desktop-light.jpg'"
+        :alt="darkModeStore.isDark ? 'Dark background' : 'Light background'"
       />
     </div>
 
@@ -20,9 +21,7 @@ const { isDark, toggleDarkMode } = useDarkMode()
       <!-- TODO header -->
       <header class="flex justify-between w-full">
         <h1 class="text-4xl tracking-[15px] font-bold text-white">TODO</h1>
-        <button @click="toggleDarkMode" class="cursor-pointer">
-          <img :src="isDark ? '/images/icon-sun.svg' : '/images/icon-moon.svg'" alt="moon icon" />
-        </button>
+        <DarkModeToggle />
       </header>
 
       <!-- TODO INPUT FORM -->
