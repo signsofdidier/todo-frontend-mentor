@@ -1,5 +1,8 @@
 <script setup>
 import { useDarkMode } from '@/composables/useDarkMode'
+import { useTodoListStore } from '@/stores/TodoListStore'
+
+const todoListStore = useTodoListStore()
 
 const { isDark, toggleDarkMode } = useDarkMode()
 </script>
@@ -26,7 +29,7 @@ const { isDark, toggleDarkMode } = useDarkMode()
       </header>
 
       <!-- TODO INPUT FORM -->
-      <form class="mt-9 shadow-md">
+      <form @submit.prevent="todoListStore.addTask" class="mt-9 shadow-md">
         <label
           class="w-full bg-white dark:bg-gray-800 px-5 py-5 rounded-lg border-0 flex items-center"
         >
@@ -39,9 +42,13 @@ const { isDark, toggleDarkMode } = useDarkMode()
               type="text"
               class="placeholder:font-700 placeholder:text-gray-500 dark:placeholder:text-gray-500 font-700 text-gray-500 dark:text-gray-400 focus:outline-none flex-1"
               placeholder="Type a message"
+              v-model="todoListStore.newTask"
             />
           </div>
-          <button class="ps-3 text-gray-600 hover:text-gray-400 dark:text-gray-500 cursor-pointer">
+          <button
+            type="submit"
+            class="ps-3 text-gray-600 hover:text-gray-400 dark:text-gray-500 cursor-pointer"
+          >
             Add
           </button>
         </label>
@@ -50,9 +57,11 @@ const { isDark, toggleDarkMode } = useDarkMode()
       <!-- TODO LIST -->
       <div class="mt-5 md:mt-9 shadow-xl rounded-lg overflow-hidden border-0">
         <!-- Todo list items -->
-        <div>
+        <div v-if="todoListStore.filteredTasks.length">
           <!-- Task item -->
           <label
+            v-for="task in todoListStore.filteredTasks"
+            :key="task.id"
             class="w-full bg-white dark:bg-gray-800 px-5 py-5 border-b-1 border-b-gray-200 dark:border-b-gray-600 flex items-center group"
           >
             <div class="flex items-center w-full">
@@ -60,64 +69,21 @@ const { isDark, toggleDarkMode } = useDarkMode()
               <input
                 type="checkbox"
                 class="list-checkbox appearance-none border border-gray-300 dark:border-gray-500 rounded-full mr-4 cursor-pointer"
+                @change="todoListStore.toggleCompleted(task)"
+                :checked="task.completed"
               />
               <!-- title -->
-              <span class="font-700 flex-1 text-gray-500 dark:text-gray-400 decoration-1"
-                >Taak 1</span
+              <span
+                class="font-700 flex-1 text-gray-500 dark:text-gray-400 decoration-1"
+                :class="task.completed ? 'line-through' : ''"
+                >{{ task.title }}</span
               >
             </div>
 
             <button
               type="button"
               class="ps-3 md:opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
-            >
-              <img src="/images/icon-cross.svg" alt="remove icon" />
-            </button>
-          </label>
-
-          <!-- Task item -->
-          <label
-            class="w-full bg-white dark:bg-gray-800 px-5 py-5 border-b-1 border-b-gray-200 dark:border-b-gray-600 flex items-center group"
-          >
-            <div class="flex items-center w-full">
-              <!-- checkbox -->
-              <input
-                type="checkbox"
-                class="list-checkbox appearance-none border border-gray-300 dark:border-gray-500 rounded-full mr-4 cursor-pointer"
-              />
-              <!-- title -->
-              <span class="font-700 flex-1 text-gray-500 dark:text-gray-400 decoration-1"
-                >Taak 2</span
-              >
-            </div>
-
-            <button
-              type="button"
-              class="ps-3 md:opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
-            >
-              <img src="/images/icon-cross.svg" alt="remove icon" />
-            </button>
-          </label>
-
-          <!-- Task item -->
-          <label
-            class="w-full bg-white dark:bg-gray-800 px-5 py-5 border-b-1 border-b-gray-200 dark:border-b-gray-600 flex items-center group"
-          >
-            <div class="flex items-center w-full">
-              <!-- checkbox -->
-              <input
-                type="checkbox"
-                class="list-checkbox appearance-none border border-gray-300 dark:border-gray-500 rounded-full mr-4 cursor-pointer"
-              />
-              <!-- title -->
-              <span class="font-700 flex-1 text-gray-500 dark:text-gray-400 decoration-1"
-                >Taak 3</span
-              >
-            </div>
-
-            <button
-              type="button"
-              class="ps-3 md:opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+              @click="todoListStore.deleteTask(task.id)"
             >
               <img src="/images/icon-cross.svg" alt="remove icon" />
             </button>
@@ -126,33 +92,63 @@ const { isDark, toggleDarkMode } = useDarkMode()
 
         <!-- NO TASKS fallback -->
         <label
+          v-else
           class="w-full bg-white dark:bg-gray-800 px-5 py-5 border-b-1 border-b-gray-200 dark:border-b-gray-600 flex items-center"
         >
           <!-- title -->
-          <span class="font-700 text-gray-500 flex-1">There no tasks.</span>
+          <span class="font-700 text-gray-500 flex-1"
+            >There no
+            {{
+              todoListStore.currentFilter === 'active'
+                ? 'active'
+                : '' || todoListStore.currentFilter === 'completed'
+                  ? 'completed'
+                  : ''
+            }}
+            tasks.</span
+          >
         </label>
 
         <!-- filters -->
         <div class="flex justify-between items-center px-4 py-3 bg-white dark:bg-gray-800">
-          <div class="text-sm text-gray-400 dark:text-gray-500">5 item left</div>
+          <div class="text-sm text-gray-400 dark:text-gray-500">
+            {{ todoListStore.tasks.length }} item{{ todoListStore.tasks.length === 1 ? '' : 's' }}
+            left
+          </div>
           <div class="space-x-3 hidden md:flex">
             <button
               type="button"
-              class="text-sm font-bold cursor-pointer text-gray-600 dark:text-gray-300"
+              @click="todoListStore.showAllTasks()"
+              class="text-sm font-bold cursor-pointer"
+              :class="
+                todoListStore.currentFilter === 'all'
+                  ? 'text-gray-600 dark:text-gray-300'
+                  : 'text-gray-400 dark:text-gray-500'
+              "
             >
               All
             </button>
             <button
               type="button"
-              @click="showActiveTasks()"
-              class="text-sm font-bold cursor-pointer text-gray-400 dark:text-gray-500"
+              @click="todoListStore.showActiveTasks()"
+              class="text-sm font-bold cursor-pointer"
+              :class="
+                todoListStore.currentFilter === 'active'
+                  ? 'text-gray-600 dark:text-gray-300'
+                  : 'text-gray-400 dark:text-gray-500'
+              "
             >
               Active
             </button>
             <button
               type="button"
-              @click="showCompletedTasks()"
-              class="text-sm font-bold cursor-pointer text-gray-400 dark:text-gray-500"
+              @click="todoListStore.showCompletedTasks()"
+              class="text-sm font-bold cursor-pointer"
+              :class="
+                todoListStore.currentFilter === 'completed'
+                  ? 'text-gray-600 dark:text-gray-300'
+                  : 'text-gray-400 dark:text-gray-500'
+              "
             >
               Completed
             </button>
@@ -160,6 +156,7 @@ const { isDark, toggleDarkMode } = useDarkMode()
           <button
             type="button"
             class="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 font-bold disabled:cursor-not-allowed disabled:text-gray-300 cursor-pointer"
+            @click="todoListStore.clearCompletedTasks()"
           >
             Clear Completed
           </button>
